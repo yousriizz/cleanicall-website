@@ -10,7 +10,7 @@ export function Hero() {
       <p className="hero-description">Nettoyage professionnel de canapés, matelas, tapis et fin de chantier, directement chez vous en Île-de-France.</p>
       <div className="hero-actions">
         <a href={contact.whatsapp} target="_blank" rel="noopener noreferrer" className="action-primary"><Icon name="whatsapp" />Devis sur WhatsApp<span className="sr-only"> (nouvel onglet)</span></a>
-        <PreviewAction destination="devis" className="action-secondary">Demander un devis</PreviewAction>
+        <PreviewAction destination="devis" className="action-secondary action-quote">Demander un devis</PreviewAction>
       </div>
       <ul className="hero-reassurance">
         <li><Icon name="bolt" /><p><strong>À domicile</strong><span>en Île-de-France</span></p></li>

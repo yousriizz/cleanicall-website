@@ -50,9 +50,11 @@ export function BeforeAfter({ before, after, demonstration = false }: BeforeAfte
             <Image src={before} alt="" fill sizes={imageSizes} loading="eager" />
             {demonstration ? <div className="demo-stains" /> : null}
           </div>
-          <div className="comparison-divider" aria-hidden="true"><span>‹ ›</span></div>
+          <div className="comparison-divider" aria-hidden="true" />
+          <span className="comparison-handle" aria-hidden="true">‹ ›</span>
           <div className="comparison-labels" aria-hidden="true"><span>Avant</span><span>Après</span></div>
           <label id={labelId} htmlFor={`${labelId}-range`} className="sr-only">Comparer avant et après</label>
+          {/* Les gestes sont gérés par l’image ; le champ natif conserve le clavier et la sémantique. */}
           <input
             ref={range}
             id={`${labelId}-range`}

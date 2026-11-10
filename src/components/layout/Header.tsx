@@ -39,7 +39,7 @@ export function Header() {
       <a href="#contenu" className="wordmark" aria-label="Cleanic’All — accueil">Cleanic’All</a>
       <nav aria-label="Navigation principale" className="desktop-nav"><ul><NavigationItems /></ul></nav>
       <div className="header-actions">
-        <PreviewAction destination="devis" className="action-primary header-quote"><Icon name="whatsapp" /><span>Demander un devis</span></PreviewAction>
+        <PreviewAction destination="devis" className="action-primary action-quote header-quote"><Icon name="whatsapp" /><span>Demander un devis</span></PreviewAction>
         <button ref={toggle} type="button" className="menu-toggle" aria-expanded={open} aria-controls="mobile-navigation" aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'} onClick={() => setOpen(!open)}><span /><span /></button>
       </div>
     </div>
