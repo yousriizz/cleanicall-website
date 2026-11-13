@@ -1,0 +1,88 @@
+async (page) => {
+  const checks = [], errors = [], warnings = [], responses = [];
+  const check = (name, pass, evidence = null) => checks.push({name, pass, evidence});
+  for (const width of [1440, 768, 390]) {
+    const context = await page.context().browser().newContext({ viewport: {width, height: 1000}, reducedMotion: 'reduce' });
+    // Toutes les destinations WhatsApp sont interceptées : aucun message réel.
+    await context.route('https://wa.me/**', route => route.fulfill({status: 200, contentType: 'text/html', body: '<title>Destination de test</title>'}));
+    const p = await context.newPage();
+    p.on('pageerror', error => errors.push({width, message: error.message}));
+    p.on('console', message => {if (message.type() === 'error') errors.push({width,message:message.text()}); if (message.type() === 'warning') warnings.push({width,message:message.text()});});
+    p.on('response', response => {if(response.status() >= 400) responses.push({width,status:response.status(),url:response.url()});});
+    await p.goto('http://127.0.0.1:3000');
+    const gallery = p.getByRole('region', {name:'Visuels de la galerie'});
+    const previous = p.getByRole('button', {name:'Visuel précédent'});
+    const next = p.getByRole('button', {name:'Visuel suivant'});
+    await gallery.scrollIntoViewIfNeeded();
+    await p.waitForFunction(() => document.querySelector('.gallery-arrows button').disabled);
+    check('Ordre des sections '+width, await p.locator('main > section').evaluateAll(elements => elements.map(e=>e.id).slice(-3).join(',') === 'transformation,galerie,prestations'));
+    check('Trois grands visuels '+width, await gallery.locator('figure').count() === 3);
+    check('Précédent désactivé au début '+width, await previous.isDisabled());
+    await next.click();
+    await p.waitForFunction(() => document.querySelector('.gallery-rail').scrollLeft > 100);
+    check('Suivant fait défiler '+width, await gallery.evaluate(e => e.scrollLeft > 100));
+    await p.waitForFunction(() => !document.querySelector('.gallery-arrows button').disabled);
+    check('Précédent disponible '+width, await previous.isEnabled());
+    await previous.click();
+    await p.waitForFunction(() => document.querySelector('.gallery-rail').scrollLeft < 2);
+    check('Retour au premier visuel '+width, await gallery.evaluate(e => e.scrollLeft < 2));
+    await gallery.focus(); await p.keyboard.press('ArrowRight');
+    await p.waitForFunction(() => document.querySelector('.gallery-rail').scrollLeft > 100);
+    check('Flèche clavier '+width, await gallery.evaluate(e => e.scrollLeft > 100));
+    check('Focus clavier visible '+width, await gallery.evaluate(e => e.matches(':focus-visible') && getComputedStyle(e).outlineStyle === 'solid'));
+    await p.keyboard.press('End');
+    await p.waitForFunction(() => document.querySelectorAll('.gallery-arrows button')[1].disabled);
+    check('Fin et limite droite '+width, await next.isDisabled());
+    await p.keyboard.press('Home');
+    await p.waitForFunction(() => document.querySelector('.gallery-rail').scrollLeft < 2);
+    await p.waitForFunction(() => document.querySelector('.gallery-arrows button').disabled);
+    check('Début et limite gauche '+width, await previous.isDisabled());
+    check('Médias lazy '+width, await p.locator('#galerie img, #prestations img').evaluateAll(images => images.every(i => i.loading === 'lazy')));
+    check('Pas de mouvement en mode réduit '+width, await p.locator('.media-reveal').evaluateAll(elements => elements.every(e=>getComputedStyle(e).animationName === 'none')));
+    check('Mentions sur chaque média '+width, await p.locator('#galerie .media-note, #prestations .media-note').count() === 9);
+    check('Six prestations '+width, await p.locator('.service-card').count() === 6);
+    check('Six mentions tarif provisoire '+width, await p.locator('.service-price span').filter({hasText:'Tarif provisoire'}).count() === 6);
+    const expected = ['un nettoyage de canapé', 'un nettoyage de matelas', 'un nettoyage de tapis', 'un nettoyage de moquette', 'un nettoyage de terrasse', 'un nettoyage de fin de chantier'];
+    const links = p.locator('.service-quote');
+    const urls = await links.evaluateAll(elements=>elements.map(e=>e.href));
+    for (let i=0;i<urls.length;i++) {
+      const url = new URL(urls[i]);
+      check('Destination et message prestation '+i+' '+width, url.origin === 'https://wa.me' && url.pathname === '/33749816082' && url.searchParams.get('text').includes(expected[i]));
+      await links.nth(i).focus();
+      check('CTA prestation focus visible '+i+' '+width, await links.nth(i).evaluate(e => e.matches(':focus-visible') && getComputedStyle(e).outlineStyle === 'solid'));
+      await Promise.all([p.waitForURL(urls[i]), p.keyboard.press('Enter')]);
+      check('CTA prestation ouvre la destination '+i+' '+width, p.url() === urls[i]);
+      await p.goBack();
+    }
+    // Charger tous les médias lazy par un véritable défilement, avant les captures.
+    for (const image of await p.locator('img').all()) {
+      await image.scrollIntoViewIfNeeded();
+      await image.evaluate(i => i.complete && i.naturalWidth ? Promise.resolve() : new Promise((resolve,reject) => {i.onload=resolve;i.onerror=reject;}));
+    }
+    await gallery.evaluate(e=>e.scrollTo({left:0,behavior:'instant'}));
+    await p.evaluate(()=>scrollTo(0,0)); await p.evaluate(()=>document.fonts.ready);
+    check('Pas de débordement page '+width, await p.evaluate(()=>document.documentElement.scrollWidth <= innerWidth));
+    check('Hiérarchie H1 conservée '+width, await p.getByRole('heading', {level:1}).count() === 1);
+    await p.evaluate(()=>document.activeElement instanceof HTMLElement && document.activeElement.blur());
+    await p.screenshot({path:'output/playwright/iteration-v2/'+width+'.png',fullPage:true});
+    await p.locator('#galerie').screenshot({path:'output/playwright/iteration-v2/gallery-'+width+'.png',style:'.site-header,.skip-link {visibility:hidden !important}'});
+    await p.locator('#prestations').screenshot({path:'output/playwright/iteration-v2/services-'+width+'.png',style:'.site-header,.skip-link {visibility:hidden !important}'});
+    await context.close();
+  }
+  const touchContext = await page.context().browser().newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});
+  const touch = await touchContext.newPage(); await touch.goto('http://127.0.0.1:3000');
+  const rail = touch.getByRole('region',{name:'Visuels de la galerie'}); await rail.scrollIntoViewIfNeeded();
+  const box = await rail.boundingBox(), cdp = await touchContext.newCDPSession(touch);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:330,y:box.y+150}]});
+  for(let x=310;x>=70;x-=20) await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:box.y+150}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await touch.waitForFunction(()=>document.querySelector('.gallery-rail').scrollLeft > 30);
+  check('Balayage tactile natif',await rail.evaluate(e=>e.scrollLeft>30));
+  await touchContext.close();
+  await page.emulateMedia({reducedMotion:'no-preference'}); await page.goto('http://127.0.0.1:3000');
+  await page.locator('.gallery-image').first().scrollIntoViewIfNeeded();
+  check('Révélation progressive supportée', await page.locator('.media-reveal').first().evaluate(e=>!CSS.supports('animation-timeline: view()') || getComputedStyle(e).animationName === 'detail-reveal'));
+  check('Aucune erreur console',errors.length===0,errors);
+  check('Aucune ressource en échec',responses.length===0,responses);
+  return {checks,errors,warnings,responses,passed:checks.filter(c=>c.pass).length,failed:checks.filter(c=>!c.pass).length};
+}
