@@ -1,0 +1,43 @@
+.carousel-v2-shell {
+  --gutter: max(24px, calc((100% - 1230px) / 2));
+  max-width: 1920px;
+  margin-inline: auto;
+  padding-block: clamp(36px, 5vw, 72px);
+}
+
+.carousel-v2-header, .carousel-v2-controls, .carousel-v2-settings { margin-inline: var(--gutter); }
+.carousel-v2-header h1 { max-width: 13ch; font-size: clamp(34px, 5vw, 68px); font-weight: 700; line-height: 1.02; letter-spacing: -.05em; }
+.carousel-v2-header p, .carousel-v2-controls p, .carousel-v2-card p { color: var(--muted); }
+.carousel-v2-header p { margin-top: 16px; font-size: 14px; }
+.carousel-v2-controls { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-block: 24px 16px; }
+.carousel-v2-controls p { font-size: 13px; }
+.carousel-v2-controls > div { display: flex; gap: 8px; }
+.carousel-v2-controls button { width: 46px; height: 46px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--brand); font-size: 22px; }
+.carousel-v2-controls button:hover:not(:disabled) { background: var(--brand-soft); }
+.carousel-v2-controls button:disabled { background: var(--section); color: var(--muted); }
+
+.carousel-v2-stage { position: relative; container-type: inline-size; overflow: hidden; height: calc(clamp(300px, 40vw, 630px) + 100px); touch-action: pan-y pinch-zoom; cursor: grab; user-select: none; }
+.carousel-v2-stage:focus-visible { outline: 3px solid var(--brand); outline-offset: -3px; }
+.carousel-v2-stage[data-dragging] { cursor: grabbing; }
+.carousel-v2-card { position: absolute; inset-block-start: 0; inset-inline-start: var(--gutter); width: 76%; margin: 0; translate: var(--x) 0; transition: translate var(--duration) var(--curve); }
+.carousel-v2-frame { position: relative; height: clamp(300px, 40vw, 630px); overflow: hidden; isolation: isolate; background: var(--section); border-radius: 24px; scale: var(--size); translate: 0 var(--drop); opacity: var(--dim); transform-origin: top left; transition: scale var(--duration) var(--curve), translate var(--duration) var(--curve), opacity var(--duration) var(--curve); }
+.carousel-v2-frame img { object-fit: cover; object-position: 72% center; pointer-events: none; }
+.carousel-v2-frame span { position: absolute; bottom: 14px; left: 14px; padding: 5px 9px; border-radius: 20px; background: var(--surface); color: var(--ink); font-size: 11px; }
+.carousel-v2-card figcaption { position: absolute; top: calc(100% + 14px); left: 0; translate: var(--caption-x) 0; opacity: var(--caption-opacity); transition: translate var(--duration) var(--curve), opacity var(--duration) var(--curve); }
+.carousel-v2-card h2 { font-size: clamp(19px, 2.2vw, 31px); font-weight: 700; letter-spacing: -.025em; }
+.carousel-v2-card p { margin-top: 4px; font-size: 14px; }
+.carousel-v2-stage[data-dragging] :is(.carousel-v2-card, .carousel-v2-frame, figcaption) { transition: none; }
+.carousel-v2-settings { padding: 14px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.carousel-v2-settings summary { cursor: pointer; font-weight: 700; }
+.carousel-v2-settings label { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.carousel-v2-settings select, .carousel-v2-settings input { accent-color: var(--brand); }
+.carousel-v2-settings select:focus-visible { outline: 2px solid var(--brand); }
+
+@media (max-width: 700px) {
+  .carousel-v2-stage { height: calc(clamp(250px, 75vw, 440px) + 90px); }
+  .carousel-v2-card { width: 80%; }
+  .carousel-v2-frame { height: clamp(250px, 75vw, 440px); border-radius: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .carousel-v2-card, .carousel-v2-frame, .carousel-v2-card figcaption { transition: none; }
+}

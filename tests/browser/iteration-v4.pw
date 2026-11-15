@@ -1,0 +1,99 @@
+async page => {
+  const base = new URL(page.url()).origin;
+  const out = 'output/playwright/iteration-v4';
+  const checks = [];
+  const check = (name, pass) => checks.push({ name, pass: Boolean(pass) });
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto(base + '/merci');
+  await page.waitForURL(url => url.pathname === '/', { timeout: 10000 });
+  check('Accès direct à la confirmation refusé', await page.locator('[data-quote-status]').count() === 0);
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(base);
+    await page.locator('.hero .action-quote').focus();
+    await page.keyboard.press('Enter');
+    await page.waitForURL('**/#devis');
+    const section = page.locator('#devis');
+    check('CTA Hero et ancre ' + width, await section.isVisible());
+    check('QR réservé au desktop ' + width, await section.locator('.quote-qr').isVisible() === (width > 780));
+    check('Aucun débordement ' + width, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.waitForFunction(() => document.querySelector('.floating-whatsapp').hidden);
+    check('Flottant masqué près du formulaire '+ width, await page.locator('.floating-whatsapp').isHidden());
+    await section.locator('img:visible').evaluateAll(async images => {
+      await Promise.all(images.map(image => { image.loading = 'eager'; return image.decode(); }));
+    });
+    await section.evaluate(element => element.blur());
+    await section.screenshot({ path: out + '/devis-' + width + '.png', style: '.site-header { visibility:hidden !important }' });
+  }
+
+  await page.goto(base);
+  await page.locator('.service-tapis .service-quote').click();
+  await page.waitForURL('**/?prestation=tapis#devis');
+  const form = page.locator('.quote-form');
+  const tapis = form.locator('input[value=tapis]');
+  await tapis.focus();
+  check('Présélection depuis la carte', await tapis.isChecked());
+  await page.keyboard.press('ArrowRight');
+  check('Sélection de prestation au clavier', await form.locator('input[value=moquettes]').isChecked());
+  check('WhatsApp contextualisé', decodeURIComponent(await form.getByRole('link', { name: 'Continuer sur WhatsApp' }).getAttribute('href')).includes('moquette'));
+  const submit = form.getByRole('button', { name: 'Envoyer ma demande' });
+  await submit.click();
+  check('Validation native des champs', await form.locator('input[name=nom]').evaluate(input => input.validity.valueMissing));
+  await form.locator('input[name=nom]').fill('Personne Test');
+  await form.locator('input[name=telephone]').fill('0600000000');
+  await form.locator('input[name=ville]').fill('75001');
+  await form.locator('input[name=information]').check();
+  const photo = Buffer.from(await page.locator('#devis img').first().evaluate(async () => Array.from(new Uint8Array(await (await fetch('/images/editorial/premium-tapis.webp')).arrayBuffer()))));
+  const picker = form.locator('input[type=file]');
+  await picker.setInputFiles([{ name: 'test-1.webp', mimeType: 'image/webp', buffer: photo }, { name: 'test-2.webp', mimeType: 'image/webp', buffer: photo }]);
+  check('Deux aperçus', await form.locator('.quote-previews li').count() === 2);
+  await form.getByRole('button', { name: 'Supprimer test-1.webp' }).click();
+  check('Suppression et focus', await form.locator('.quote-previews li').count() === 1 && await picker.evaluate(x => x === document.activeElement));
+  await picker.setInputFiles({ name: 'test.txt', mimeType: 'text/plain', buffer: Buffer.from('Fichier fictif') });
+  check('Type invalide côté client', await form.getByText('Choisissez une image JPEG, PNG ou WebP.').isVisible());
+  await picker.setInputFiles({ name: 'grand.webp', mimeType: 'image/webp', buffer: Buffer.alloc(1024 * 1024 + 1) });
+  check('Taille refusée côté client', await form.getByText('Chaque photo doit faire 1 Mo maximum.').isVisible());
+
+  await page.route('**/api/devis', async route => {
+    await new Promise(resolve => setTimeout(resolve, 450));
+    await route.fulfill({ status: 502, json: { message: 'Erreur serveur de test.' } });
+  });
+  await submit.click();
+  check('Chargement de la demande', await form.getByRole('button', { name: 'Envoi en cours…' }).isDisabled());
+  await form.getByText('Erreur serveur de test.').waitFor();
+  check('Conservation de la saisie et des photos après erreur', await form.locator('input[name=nom]').inputValue() === 'Personne Test' && await form.locator('.quote-previews li').count() === 1);
+  check('Focus sur l’erreur', await form.locator('.quote-summary').evaluate(x => x === document.activeElement));
+  await page.unroute('**/api/devis');
+
+  const api = (scenario) => page.evaluate(async scenario => {
+    const data = new FormData();
+    for (const [key, value] of Object.entries({ prestation: 'tapis', nom: 'Personne Test', telephone: '0600000000', ville: '75001', information: 'on' })) data.set(key, value);
+    if (scenario === 'fields') data.delete('nom');
+    if (scenario === 'spam') data.set('site', 'Robot');
+    if (scenario === 'corrupt') data.set('photos', new File(['faux webp'], 'faux.webp', { type: 'image/webp' }));
+    if (scenario === 'size') data.set('photos', new File([new Uint8Array(1024 * 1024 + 1)], 'grand.webp', { type: 'image/webp' }));
+    if (scenario === 'body') data.set('photos', new File([new Uint8Array(4 * 1024 * 1024)], 'grand.webp', { type: 'image/webp' }));
+    const res = await fetch('/api/devis', { method: 'POST', body: data });
+    return res.status;
+  }, scenario);
+  check('Champs validés côté serveur', await api('fields') === 422);
+  check('Champ piège anti-spam', await api('spam') === 400);
+  check('Photo corrompue refusée côté serveur', await api('corrupt') === 422);
+  check('Photo trop volumineuse refusée côté serveur', await api('size') === 422);
+  check('Corps multipart plafonné', await api('body') === 413);
+
+  const [sent] = await Promise.all([page.waitForResponse(response => response.url().endsWith('/api/devis')), submit.click()]);
+  if (!sent.ok()) throw new Error('Réponse inattendue du serveur local : ' + sent.status());
+  await page.waitForURL('**/merci', { timeout: 10000 });
+  check('Confirmation conditionnelle de test', await page.getByRole('heading', { name: 'Demande de test validée.' }).isVisible());
+  check('Mention de non-envoi', await page.getByText(/Aucun e-mail n’a été envoyé/).isVisible());
+  await page.screenshot({ path: out + '/merci-390.png' });
+  const attempts = await Promise.all([api('spam'), api('spam'), api('spam')]);
+  check('Limitation des requêtes', attempts.includes(429));
+  check('WhatsApp flottant sur la page Merci', await page.locator('.floating-whatsapp').isVisible());
+  check('Numéro WhatsApp officiel', new URL(await page.locator('.floating-whatsapp').getAttribute('href')).pathname === '/33749816082');
+  check('Aucune erreur JavaScript', errors.length === 0);
+  return { checks, passed: checks.filter(item => item.pass).length, failed: checks.filter(item => !item.pass).length };
+}

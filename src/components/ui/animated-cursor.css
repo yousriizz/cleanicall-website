@@ -1,0 +1,62 @@
+.animated-cursor-layer {
+  display: none;
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  overflow: clip;
+  z-index: 110;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+  html[data-animated-cursor]:not(:has(dialog[open])),
+  html[data-animated-cursor]:not(:has(dialog[open])) * {
+    cursor: none !important;
+  }
+
+  html[data-animated-cursor]:not(:has(dialog[open])) .animated-cursor-layer { display: block; }
+  .animated-cursor { position: absolute; top: 0; left: 0; }
+
+  .animated-cursor-shape {
+    position: absolute;
+    top: -26px;
+    left: -26px;
+    width: 52px;
+    height: 52px;
+    transition: scale 350ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animated-cursor[data-pressed] .animated-cursor-shape { scale: .78; }
+
+  .animated-cursor-dot,
+  .animated-cursor-ring {
+    position: absolute;
+    border-radius: 50%;
+    transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1),
+                scale 350ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animated-cursor-dot { inset: 22px; background: var(--brand); }
+  .animated-cursor-ring {
+    inset: 0;
+    border: 1.3px solid #7CB8FF;
+    box-shadow: 0 0 4px #82BCFF, 0 0 10px #438CFF, 0 0 22px #315FAECC,
+                0 0 35px #438CFF44, inset 0 0 9px #438CFF55;
+    opacity: 0;
+    scale: .154;
+  }
+
+  .animated-cursor[data-hover] .animated-cursor-dot { opacity: 0; }
+  .animated-cursor[data-hover] .animated-cursor-ring { opacity: 1; scale: 1; }
+}
+
+@media (forced-colors: none) {
+  ::selection { color: var(--selection-ink, var(--brand)); background: transparent; }
+
+  :is(.comparison, .trust-partnership, .skip-link, .action-primary:not(:disabled), .action-quote:not(:disabled), .comparison-labels span) {
+    --selection-ink: #D8EDFF;
+  }
+
+  :is(.trust-partnership .action-secondary:not(.action-quote), .comparison-help) {
+    --selection-ink: var(--brand);
+  }
+}

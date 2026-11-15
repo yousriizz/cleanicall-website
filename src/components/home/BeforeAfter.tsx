@@ -42,10 +42,10 @@ export function BeforeAfter({ before, after, demonstration = false }: BeforeAfte
         <div className="transformation-copy">
           <p className="eyebrow">La transformation</p>
           <h2 id="transformation-title">Un résultat<br />qui se voit.</h2>
-          <p>Avant / après : la preuve<br />d’un nettoyage en profondeur.</p>
+          <p>{demonstration ? 'Explorez la transformation simulée.' : 'Comparez le textile avant et après le nettoyage.'}</p>
         </div>
         <div className="comparison-images" onPointerDown={startDrag} onPointerMove={continueDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
-          <Image src={after} alt={demonstration ? 'Canapé clair dans un salon, image de démonstration générée.' : 'Canapé après nettoyage.'} fill sizes={imageSizes} loading="eager" />
+          <Image src={after} alt={demonstration ? 'Canapé en bouclé bleu, image de démonstration générée.' : 'Canapé après nettoyage.'} fill sizes={imageSizes} loading="eager" />
           <div className={`comparison-before${demonstration ? ' is-simulated' : ''}`}>
             <Image src={before} alt="" fill sizes={imageSizes} loading="eager" />
             {demonstration ? <div className="demo-stains" /> : null}

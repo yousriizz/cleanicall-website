@@ -1,3 +1,5 @@
+import { QuoteSection } from "@/components/quote/QuoteSection";
+import { TrustSections } from "@/components/home/trust/TrustSections";
 import { Hero } from "@/components/home/Hero";
 import { Header } from "@/components/layout/Header";
 import { Transformation } from "@/components/home/Transformation";
@@ -9,7 +11,7 @@ export default function Home() {
     <div className="cleanicall">
       <a href="#contenu" className="skip-link">Aller au contenu</a>
       <Header />
-      <main id="contenu" tabIndex={-1}><Hero /><Transformation /><ImmersiveGallery /><PremiumServices /></main>
+      <main id="contenu" tabIndex={-1}><Hero /><Transformation /><ImmersiveGallery /><PremiumServices /><TrustSections /><QuoteSection /></main>
     </div>
   );
 }

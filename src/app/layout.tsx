@@ -1,3 +1,6 @@
+import { AnimatedCursor } from "@/components/ui/AnimatedCursor";
+import { FloatingWhatsApp } from "@/components/quote/FloatingWhatsApp";
+import "@/components/quote/quote.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -19,7 +22,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${manrope.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">{children}<FloatingWhatsApp /><AnimatedCursor /></body>
     </html>
   );
 }

@@ -4,7 +4,6 @@ async (page) => {
   for (const width of [1440, 768, 390]) {
     const context = await page.context().browser().newContext({ viewport: {width, height: 1000}, reducedMotion: 'reduce' });
     // Toutes les destinations WhatsApp sont interceptées : aucun message réel.
-    await context.route('https://wa.me/**', route => route.fulfill({status: 200, contentType: 'text/html', body: '<title>Destination de test</title>'}));
     const p = await context.newPage();
     p.on('pageerror', error => errors.push({width, message: error.message}));
     p.on('console', message => {if (message.type() === 'error') errors.push({width,message:message.text()}); if (message.type() === 'warning') warnings.push({width,message:message.text()});});
@@ -15,8 +14,8 @@ async (page) => {
     const next = p.getByRole('button', {name:'Visuel suivant'});
     await gallery.scrollIntoViewIfNeeded();
     await p.waitForFunction(() => document.querySelector('.gallery-arrows button').disabled);
-    check('Ordre des sections '+width, await p.locator('main > section').evaluateAll(elements => elements.map(e=>e.id).slice(-3).join(',') === 'transformation,galerie,prestations'));
-    check('Trois grands visuels '+width, await gallery.locator('figure').count() === 3);
+    check('Ordre des sections '+width, await p.locator('main > section').evaluateAll(elements => elements.map(e=>e.id).filter(id=>['transformation','galerie','prestations'].includes(id)).join(',') === 'transformation,galerie,prestations'));
+    check('Quatre visuels dans l’ordre éditorial '+width, (await gallery.locator('figure h3').allTextContents()).join('|') === 'Le soin des assises|Le soin des textiles|Le geste de nettoyage|Le salon après le soin');
     check('Précédent désactivé au début '+width, await previous.isDisabled());
     await next.click();
     await p.waitForFunction(() => document.querySelector('.gallery-rail').scrollLeft > 100);
@@ -39,23 +38,23 @@ async (page) => {
     check('Début et limite gauche '+width, await previous.isDisabled());
     check('Médias lazy '+width, await p.locator('#galerie img, #prestations img').evaluateAll(images => images.every(i => i.loading === 'lazy')));
     check('Pas de mouvement en mode réduit '+width, await p.locator('.media-reveal').evaluateAll(elements => elements.every(e=>getComputedStyle(e).animationName === 'none')));
-    check('Mentions sur chaque média '+width, await p.locator('#galerie .media-note, #prestations .media-note').count() === 9);
+    check('Mentions sur chaque média '+width, await p.locator('#galerie .media-note, #prestations .media-note').count() === 10);
     check('Six prestations '+width, await p.locator('.service-card').count() === 6);
     check('Six mentions tarif provisoire '+width, await p.locator('.service-price span').filter({hasText:'Tarif provisoire'}).count() === 6);
-    const expected = ['un nettoyage de canapé', 'un nettoyage de matelas', 'un nettoyage de tapis', 'un nettoyage de moquette', 'un nettoyage de terrasse', 'un nettoyage de fin de chantier'];
+    const expected = ['canapes', 'matelas', 'tapis', 'moquettes', 'terrasses', 'chantier'];
     const links = p.locator('.service-quote');
     const urls = await links.evaluateAll(elements=>elements.map(e=>e.href));
     for (let i=0;i<urls.length;i++) {
       const url = new URL(urls[i]);
-      check('Destination et message prestation '+i+' '+width, url.origin === 'https://wa.me' && url.pathname === '/33749816082' && url.searchParams.get('text').includes(expected[i]));
+      check('Destination et présélection prestation '+i+' '+width, url.origin === new URL(p.url()).origin && url.hash === '#devis' && url.searchParams.get('prestation') === expected[i]);
       await links.nth(i).focus();
       check('CTA prestation focus visible '+i+' '+width, await links.nth(i).evaluate(e => e.matches(':focus-visible') && getComputedStyle(e).outlineStyle === 'solid'));
       await Promise.all([p.waitForURL(urls[i]), p.keyboard.press('Enter')]);
-      check('CTA prestation ouvre la destination '+i+' '+width, p.url() === urls[i]);
+      check('CTA prestation sélectionne la vignette '+i+' '+width, await p.locator(`#devis input[value="${expected[i]}"]`).isChecked());
       await p.goBack();
     }
     // Charger tous les médias lazy par un véritable défilement, avant les captures.
-    for (const image of await p.locator('img').all()) {
+    for (const image of await p.locator('img:visible').all()) {
       await image.scrollIntoViewIfNeeded();
       await image.evaluate(i => i.complete && i.naturalWidth ? Promise.resolve() : new Promise((resolve,reject) => {i.onload=resolve;i.onerror=reject;}));
     }

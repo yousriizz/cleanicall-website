@@ -1,0 +1,66 @@
+.quote-section { width: min(100% - 48px, 1230px); margin-inline: auto; padding: clamp(42px, 7vw, 100px) 0 100px; scroll-margin-top: 76px; }
+.quote-section h2, .quote-result h1 { font-size: clamp(40px, 6vw, 80px); line-height: 1.02; font-weight: 700; letter-spacing: -.055em; text-wrap: balance; }
+.quote-intro { margin-top: 12px; color: var(--muted); font-size: clamp(17px, 2.1vw, 24px); }
+.quote-layout { display: grid; grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); align-items: start; gap: clamp(26px, 6vw, 96px); margin-top: clamp(26px, 5vw, 60px); }
+.quote-layout h3 { font-size: clamp(24px, 3vw, 34px); font-weight: 700; letter-spacing: -.04em; line-height: 1.1; }
+.quote-whatsapp { padding: clamp(20px, 3vw, 42px); border-radius: 24px; background: var(--section); }
+.quote-whatsapp > p { max-width: 35ch; margin-top: 14px; color: var(--muted); }
+.quote-whatsapp-actions, .quote-result-actions { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; margin-top: 22px; }
+.quote-phone, .quote-form-jump, .quote-alternative, .quote-muted a { color: var(--brand); text-decoration: underline; text-underline-offset: 4px; }
+.quote-qr { display: flex; gap: 18px; align-items: center; margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--border); }
+.quote-qr img { flex: none; padding: 12px; background: white; image-rendering: pixelated; }
+.quote-qr figcaption, .quote-muted { color: var(--muted); font-size: 14px; }
+.quote-form-jump { display: none; }
+.quote-form, .quote-fields { display: grid; gap: 16px; min-width: 0; }
+.quote-fields { gap: 20px; }
+.quote-form h3 { scroll-margin-top: 80px; }
+.quote-services legend, .quote-photos > label, .quote-field { font-size: 14px; font-weight: 700; }
+.quote-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.quote-option { min-width: 0; cursor: pointer; }
+.quote-option > span { display: block; height: 100%; overflow: hidden; border: 2px solid var(--border); border-radius: 12px; transition: background-color .18s, border-color .18s; }
+.quote-option img { width: 100%; height: clamp(48px, 7vw, 78px); object-fit: cover; }
+.quote-option > span > span { display: block; padding: 7px; font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+.quote-option:hover > span { border-color: var(--brand); }
+.quote-option input:checked + span { color: var(--brand-deep); border-color: var(--brand); background: var(--brand-soft); }
+.quote-option input:focus-visible + span { outline: 2px solid var(--brand); outline-offset: 2px; }
+.quote-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.quote-field { display: grid; align-content: start; gap: 5px; min-width: 0; }
+.quote-field input, .quote-field textarea { min-width: 0; min-height: 46px; border: 1px solid #8a8a92; border-radius: 10px; padding: 9px 12px; font-size: 16px; font-weight: 400; }
+.quote-field textarea { resize: vertical; }
+.quote-field [aria-invalid=true] { border-color: #9b2634; }
+.quote-photos > p { margin-block: 5px; }
+.quote-photos input { max-width: 100%; font-size: 14px; }
+.quote-photos input::file-selector-button { padding: 8px 12px; min-height: 44px; margin-right: 8px; border-radius: 8px; background: var(--brand-soft); color: var(--brand-deep); cursor: pointer; }
+.quote-previews { display: grid; gap: 6px; margin-top: 10px; }
+.quote-previews li { display: grid; grid-template-columns: 68px minmax(0,1fr) 44px; align-items: center; gap: 8px; font-size: 13px; overflow-wrap: anywhere; }
+.quote-previews img { height: 54px; width: 68px; object-fit: cover; border-radius: 6px; }
+.quote-previews button { min-height: 44px; border-radius: 8px; font-size: 22px; cursor: pointer; }
+.quote-previews button:hover { background: var(--section); }
+.quote-consent { display: flex; gap: 9px; align-items: start; font-size: 14px; cursor: pointer; }
+.quote-consent input { flex: none; margin-top: 2px; width: 18px; height: 18px; accent-color: var(--brand); }
+.quote-form button[type=submit], .quote-alternative { justify-self: start; }
+.quote-form button:disabled { cursor: not-allowed; background: var(--disabled-surface); color: var(--disabled-ink); }
+.quote-error { color: #9b2634; font-size: 14px; font-weight: 700; }
+.quote-summary, .quote-test { padding: 12px; border-radius: 8px; background: var(--brand-soft); }
+.quote-test { color: var(--brand-deep); font-size: 14px; }
+.quote-result { width: min(100% - 48px, 850px); margin: auto; padding: 80px 0 110px; }
+.quote-result > p { max-width: 55ch; margin-top: 20px; color: var(--muted); }
+.quote-result > .action-quote { margin-top: 20px; }
+.floating-whatsapp { position: fixed; right: max(12px, env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom) + var(--cookie-banner-height, 0px)); z-index: 12; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--ink); color: var(--surface); box-shadow: 0 2px 12px #1112; }
+.floating-whatsapp[hidden] { display: none; }
+.floating-whatsapp:hover { background: var(--brand-deep); }
+.floating-whatsapp svg { width: 22px; height: 22px; }
+@media (max-width: 780px) {
+  .quote-layout { grid-template-columns: minmax(0, 1fr); }
+  .quote-qr { display: none; }
+  .quote-form-jump { display: inline-flex; align-items: center; min-height: 44px; margin-top: 8px; }
+}
+@media (max-width: 500px) {
+  .quote-grid { grid-template-columns: minmax(0,1fr); }
+  .quote-section, .quote-result { width: calc(100% - 36px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .quote-previews li, .quote-summary, .quote-result { animation: quote-in .22s var(--ease-reveal) both; }
+}
+@keyframes quote-in { from { opacity: .55; translate: 0 4px; } to { opacity: 1; translate: 0 0; } }

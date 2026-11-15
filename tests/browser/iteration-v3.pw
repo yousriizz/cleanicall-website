@@ -1,0 +1,119 @@
+async (page) => {
+  const browser = page.context().browser();
+  const results = [];
+  const directory = 'output/playwright/iteration-v3';
+  const base = 'http://127.0.0.1:3023';
+  function check(name, pass, evidence) {
+    results.push({ name, pass: Boolean(pass), evidence });
+  }
+
+  for (const width of [1440, 768, 390, 320]) {
+    const height = width < 700 ? 844 : 1000;
+    const context = await browser.newContext({
+      viewport: { width, height },
+      hasTouch: width === 390,
+      ...(width === 1440 ? { recordVideo: { dir: directory, size: { width: 1152, height: 800 } } } : {}),
+    });
+    const p = await context.newPage();
+    const errors = [];
+    p.on('pageerror', error => errors.push(error.message));
+    p.on('console', message => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
+    await p.goto(base + '/#comment-ca-marche');
+    await p.evaluate(() => document.fonts.ready);
+    const story = p.locator('.trust-story');
+    const machine = story.locator('.trust-shot-wide');
+    await machine.evaluate(img => img.decode());
+    const steps = story.locator('li');
+    const map = p.locator('#zone-intervention');
+    check('Sections de confiance puis devis en ordre ' + width, await p.locator('main > section').evaluateAll(elements =>
+      elements.map(element => element.id).slice(-5).join(',') === 'avis,comment-ca-marche,zone-intervention,partenariats,devis'));
+    check('Pas de débordement ' + width, await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    check('Trois étapes lisibles ' + width, await steps.count() === 3 && await steps.last().isVisible());
+    check('Avis identifiés comme provisoires ' + width, await p.getByText('Données Google en attente de vérification').isVisible() && await p.locator('#avis blockquote').count() === 0);
+    check('Deux destinations Google ' + width, (await p.getByRole('link', { name: 'Voir tous les avis' }).getAttribute('href')).startsWith('https://www.google.com/maps/place/') &&
+      (await p.getByRole('link', { name: 'Laisser un avis' }).getAttribute('href')).endsWith('/review'));
+
+    if (width === 1440) {
+      const track = story.locator('.trust-story-track');
+      await track.scrollIntoViewIfNeeded();
+      const start = await track.evaluate(element => element.getBoundingClientRect().top + scrollY - 94);
+      const sample = async offset => {
+        await p.evaluate(top => window.scrollTo({ top, behavior: 'instant' }), start + offset);
+        await p.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        return track.evaluate(element => ({
+          y: element.querySelector('.trust-story-scene').getBoundingClientRect().top,
+          image: [...element.querySelectorAll('.trust-shot')].map(img => {
+            const style = getComputedStyle(img);
+            return style.opacity + ':' + style.transform;
+          }).join(','),
+          text: [...element.querySelectorAll('.trust-story-copy')].map(card => getComputedStyle(card).opacity),
+        }));
+      };
+      const first = await sample(120);
+      const middle = await sample(540);
+      const last = await sample(780);
+      const reverse = await sample(540);
+      check('Visuel sticky sur plusieurs positions', [first, middle, last].every(state => Math.abs(state.y - 94) < 1), [first.y, middle.y, last.y]);
+      check('Transformations pilotées par le scroll', new Set([first.image, middle.image, last.image]).size === 3 && first.text.join() !== middle.text.join(), { first, middle, last });
+      check('Retour exact à la même progression', JSON.stringify(reverse) === JSON.stringify(middle), reverse);
+      await sample(-150);
+      await p.waitForTimeout(400);
+      for (let offset = -150; offset <= 1180; offset += 22) {
+        await p.evaluate(top => window.scrollTo({ top, behavior: 'instant' }), start + offset);
+        await p.waitForTimeout(22);
+      }
+      for (let offset = 1180; offset >= 100; offset -= 24) {
+        await p.evaluate(top => window.scrollTo({ top, behavior: 'instant' }), start + offset);
+        await p.waitForTimeout(21);
+      }
+    } else {
+      check('Récit statique sous 900 px ' + width, await machine.evaluate(img => getComputedStyle(img).animationName === 'none'));
+    }
+
+    const svg = map.locator('svg');
+    check('Huit contours Etalab ' + width, await svg.locator('path').count() === 8);
+    const paris = map.getByRole('radio', { name: '75 Paris' });
+    await paris.focus();
+    await p.keyboard.press('ArrowRight');
+    await map.getByRole('heading', { name: 'Seine-et-Marne (77)' }).waitFor();
+    check('Sélection clavier synchronisée ' + width, (await svg.locator('[data-department="77"]').getAttribute('data-selected')) === 'true');
+    if (width === 1440 || width === 390) {
+      const path = svg.locator('[data-department="78"]');
+      await path.scrollIntoViewIfNeeded();
+      const point = await path.evaluate(element => {
+        const box = element.getBBox();
+        for (let y = 1; y < 10; y++) for (let x = 1; x < 10; x++) {
+          const point = new DOMPoint(box.x + box.width * x / 10, box.y + box.height * y / 10);
+          if (element.isPointInFill(point)) return point.matrixTransform(element.getScreenCTM()).toJSON();
+        }
+        throw new Error('Aucun point intérieur');
+      });
+      if (width === 1440) {
+        await p.mouse.move(point.x, point.y);
+        check('Survol carte', (await path.getAttribute('data-highlight')) === 'true');
+        await p.mouse.click(point.x, point.y);
+      } else {
+        await p.touchscreen.tap(point.x, point.y);
+      }
+      await map.getByRole('heading', { name: 'Yvelines (78)' }).waitFor();
+      check('Sélection SVG ' + width, (await path.getAttribute('data-selected')) === 'true');
+    }
+    check('Contact contextualisé ' + width, new URL(await map.getByRole('link', { name: 'Vérifier ma commune' }).getAttribute('href')).searchParams.get('text').includes(width === 1440 || width === 390 ? 'Yvelines (78)' : 'Seine-et-Marne (77)'));
+    check('CTA partenariat ' + width, new URL(await p.getByRole('link', { name: 'Discuter d’un partenariat' }).getAttribute('href')).searchParams.get('text').includes('partenariat professionnel'));
+
+    await p.emulateMedia({ reducedMotion: 'reduce' });
+    check('Mouvement réduit ' + width, await machine.evaluate(img => getComputedStyle(img).animationName === 'none' &&
+      getComputedStyle(img.closest('.trust-story-scene')).position !== 'sticky'));
+    check('Aucune erreur console ' + width, errors.length === 0, errors);
+    const video = p.video();
+    if (video) {
+      await p.close();
+      await video.saveAs(directory + '/storytelling.webm');
+    }
+    await context.close();
+  }
+
+  return { results, passed: results.filter(result => result.pass).length, failed: results.filter(result => !result.pass).length };
+}

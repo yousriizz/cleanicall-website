@@ -9,7 +9,7 @@ function NavigationItems() {
     <li><PreviewAction destination="professionnels" className="nav-item">Professionnels</PreviewAction></li>
     <li><a href="#transformation" className="nav-item">Nos réalisations</a></li>
     <li><PreviewAction destination="presentation" className="nav-item">À propos</PreviewAction></li>
-    <li className="mobile-contact"><PreviewAction destination="devis" className="nav-item">Contact</PreviewAction></li>
+    <li className="mobile-contact"><a href="#devis" className="nav-item">Contact</a></li>
   </>;
 }
 export function Header() {
@@ -39,7 +39,7 @@ export function Header() {
       <a href="#contenu" className="wordmark" aria-label="Cleanic’All — accueil">Cleanic’All</a>
       <nav aria-label="Navigation principale" className="desktop-nav"><ul><NavigationItems /></ul></nav>
       <div className="header-actions">
-        <PreviewAction destination="devis" className="action-primary action-quote header-quote"><Icon name="whatsapp" /><span>Demander un devis</span></PreviewAction>
+        <a href="#devis" className="action-primary action-quote header-quote"><span>Demander un devis</span></a>
         <button ref={toggle} type="button" className="menu-toggle" aria-expanded={open} aria-controls="mobile-navigation" aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'} onClick={() => setOpen(!open)}><span /><span /></button>
       </div>
     </div>
